@@ -1,0 +1,129 @@
+[project]
+name = "BharatVoice"
+version = "1.0.0"
+description = "Voice bot platform for local businesses runner"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # Web Framework
+    "fastapi>=0.115.0,<0.116",
+    "uvicorn[standard]>=0.34.0,<0.35",
+    "websockets>=14.0,<15",
+    "python-multipart>=0.0.9",
+    # Database
+    "sqlmodel>=0.0.22,<0.1",
+    "alembic>=1.14.0,<2",
+    "aiosqlite>=0.20.0,<0.21",
+    "greenlet>=3.0.0",
+    # Voice Pipeline
+    "deepgram-sdk>=3.7.0,<4",
+    "cartesia>=1.3.0,<2",
+    "groq>=0.13.0,<1",
+    "plivo>=4.55.0,<5",
+    # Audio Processing
+    "soundfile>=0.12.0,<0.13",
+    "soxr>=0.5.0,<0.6",
+    "numpy>=2.0.0,<3",
+    "pydub>=0.25.1,<0.26",
+    "miniaudio>=1.59,<2",
+    # Voice Activity Detection (Silero VAD — torch is already a transitive dep)
+    "silero-vad>=6.0",
+    # Background Tasks
+    "arq>=0.26.0,<0.27",
+    "redis[hiredis]>=5.0.0,<6",
+    # Config
+    "pydantic-settings>=2.5.0,<3",
+    "pyyaml>=6.0.0,<7",
+    # Security
+    "cryptography>=44.0.0,<45",
+    "bcrypt>=4.2.0,<5",
+    "PyJWT[crypto]>=2.8.0,<3",
+    # HTTP
+    "aiohttp>=3.11.0,<4",
+    # Logging
+    "loguru>=0.7.0,<0.8",
+    # Knowledge Base / RAG
+    "chromadb>=0.5.0,<1",
+    "sentence-transformers>=3.0.0,<4",
+    # CRUD Generation (runtime - used in API routes)
+    "fastapi-crudrouter>=0.8.0,<0.9",
+    # Observability
+    "prometheus-client>=0.21.0,<0.22",
+    "sounddevice>=0.5.5",
+    # Agent System (Transcript Analysis)
+    "crewai>=0.86.0,<1",
+    "crewai-tools>=0.17.0,<1",
+    "langchain-groq>=0.2.0,<1",
+]
+
+[project.optional-dependencies]
+admin = [
+    "streamlit>=1.41.0,<2",
+    "streamlit-extras>=0.4.0,<0.5",
+    "streamlit-authenticator>=0.3.0,<0.4",
+]
+
+dev = [
+    # Code Quality
+    "ruff>=0.8.0",
+    "mypy>=1.14.0",
+    "pre-commit>=4.0.0",
+
+    # Testing
+    "ward>=0.67.0",
+    "pytest-asyncio>=0.24.0",
+    "coverage>=7.0.0",
+
+    # Code Generation (dev-only tools)
+    "datamodel-code-generator>=0.26.0,<0.27",
+    # "eralchemy2>=1.4.0,<2",  # Requires graphviz system library
+
+    # Local Development
+    "sounddevice>=0.5.0,<0.6",
+
+    # Type stubs
+    "types-PyYAML>=6.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+# B008: Allow function calls in defaults (required for FastAPI Depends/Query)
+# E501: Allow long lines in prompts (LLM system prompts are intentionally long)
+# SIM105: Allow try/except/pass in some cases for clarity
+per-file-ignores = { "src/api/routes/*.py" = ["B008"], "src/prompts/*.py" = ["E501"], "src/services/llm/extractor.py" = ["E501", "SIM105"] }
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-m 'not external'"
+markers = [
+    "external: requires external network or third-party APIs",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "ruff>=0.14.14",
+    "types-pyyaml>=6.0.12.20250915",
+    "httpx>=0.27.0",
+    "datamodel-code-generator>=0.26.5",
+]

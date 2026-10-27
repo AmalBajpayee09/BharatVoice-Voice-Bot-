@@ -1,0 +1,143 @@
+version: "3.9"
+
+# Development docker-compose with Keycloak for auth testing
+# Usage: docker-compose -f docker-compose.dev.yml up -d
+
+services:
+  # ==========================================================================
+  # Core Services
+  # ==========================================================================
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=development
+      - REDIS_URL=redis://redis:6379/0
+      - KEYCLOAK_URL=http://keycloak:8080
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config
+      - ./src:/app/src  # Hot reload
+    depends_on:
+      - redis
+      - keycloak
+    restart: unless-stopped
+
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.admin
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    environment:
+      - KEYCLOAK_URL=http://keycloak:8080
+    volumes:
+      - ./data:/app/data
+      - ./admin:/app/admin  # Hot reload
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: uv run arq src.worker.WorkerSettings
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./src:/app/src  # Hot reload
+      - ./config:/app/config
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Frontend (React + Vite)
+  # ==========================================================================
+
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "5173:5173"
+    environment:
+      # Browser-facing URLs (localhost for user's browser)
+      - VITE_API_URL=http://localhost:8000
+      # Container-internal URL for Vite dev proxy (/api, /voice)
+      - VITE_API_PROXY_URL=http://api:8000
+      - VITE_KEYCLOAK_URL=http://localhost:8080
+      - VITE_KEYCLOAK_REALM=vartalaap
+      - VITE_KEYCLOAK_CLIENT_ID=vartalaap-web
+      - VITE_BUSINESS_ID=himalayan_kitchen
+    volumes:
+      - ./web:/app
+      - web_node_modules:/app/node_modules  # Persist node_modules
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Infrastructure
+  # ==========================================================================
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Authentication (Keycloak)
+  # ==========================================================================
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    ports:
+      - "8080:8080"
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://keycloak-db:5432/keycloak
+      - KC_DB_USERNAME=keycloak
+      - KC_DB_PASSWORD=keycloak
+      - KC_HOSTNAME_STRICT=false
+      - KC_HTTP_ENABLED=true
+    command: start-dev --import-realm
+    volumes:
+      - ./config/keycloak/vartalaap-realm.json:/opt/keycloak/data/import/vartalaap-realm.json:ro
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  keycloak-db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=keycloak
+      - POSTGRES_USER=keycloak
+      - POSTGRES_PASSWORD=keycloak
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  keycloak_db_data:
+  web_node_modules:
