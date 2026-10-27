@@ -1,677 +1,336 @@
-\# BharatVoice 🇮🇳
+<div align="center">
 
+# 🇮🇳 BharatVoice
 
+### भारतवॉइस — *"conversation"*
 
-_>&#x20;_**\*\*भारतवॉइस\*\***_&#x20;(Hindi: "conversation") - Self-hosted voice AI platform for local Indian businesses_
+**Self-hosted voice AI for local Indian businesses.**
+Answers phone calls in Hindi, English and Hinglish, 24/7, for a fraction of the cost of a receptionist.
 
+[![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/Admin-React%20%2B%20TypeScript-61DAFB.svg)](#-admin-tools)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Release](https://img.shields.io/badge/release-v0.3-brightgreen.svg)](https://github.com/AmalBajpayee09/BharatVoice/releases)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-ff69b4.svg)](#-contributing)
 
+[Quick Start](#-quick-start) · [Features](#-features) · [Architecture](#-architecture) · [Demo](#-demo-himalayan-kitchen) · [Docs](docs/PRD_and_Technical_Documentation.md) · [Contributing](#-contributing)
 
-[![Python 3.12+]\(https\://img.shields.io/badge/python-3.12+-blue.svg)]\(https\://www\.python.org/downloads/)
+</div>
 
-[![FastAPI]\(https\://img.shields.io/badge/FastAPI-0.115+-green.svg)]\(https\://fastapi.tiangolo.com/)
+---
 
-[![License: MIT]\(https\://img.shields.io/badge/License-MIT-yellow\.svg)]\(https\://opensource.org/licenses/MIT)
+## 📖 Overview
 
-[![Release]\(https\://img.shields.io/badge/release-v0.3-brightgreen.svg)]\(https\://github.com/AmalBajpayee09/BharatVoice/releases)
+Small restaurants, clinics and shops lose customers every day to **missed calls**. Hiring staff to answer phones is expensive, and most global voice-AI products don't understand how India actually speaks: a Hindi sentence with English words dropped in mid-way.
 
+**BharatVoice** is a production-ready voice bot that picks up the phone, understands Hindi / English / Hinglish, answers from the business's own menu and FAQs, and takes reservations, all at roughly **$16–27 per month** in running costs.
 
+> 🗣️ *"Table book karna hai, 4 log, kal shaam 7 baje."*
+> → BharatVoice understands, checks availability, and confirms, in under a second.
 
-A production-ready voice bot that handles phone calls autonomously with native **\*\*Hindi-English-Hinglish\*\*** support. Built for restaurants, clinics, and local businesses that need affordable, high-quality voice AI.
+---
 
+## ✨ Features
 
+| | Feature | What it gives you |
+|---|---|---|
+| 🎙️ | **Real-time voice pipeline** | Deepgram STT → Groq LLM → Piper TTS, **< 500 ms P50** processing |
+| 🇮🇳 | **Native Hindi support** | Natural code-switching between Hindi, English and Hinglish |
+| 📞 | **Telephony ready** | Plivo integration for inbound calls over WebSocket audio streaming |
+| 🍽️ | **Restaurant demo** | Reservations, menu questions and opening hours, fully working |
+| 🧠 | **Knowledge base (RAG)** | ChromaDB retrieval over menu items, FAQs and policies |
+| 🏢 | **Multi-business** | One deployment, many businesses, routed by dialled phone number |
+| 🤖 | **AI quality review** | CrewAI agents score every call and suggest fixes |
+| 🔒 | **Privacy first** | AES-256-GCM phone encryption, PII masking, safe routing fallback |
+| 💰 | **Cost effective** | ~$16–27/month operational cost |
 
-\## ✨ Features
+---
 
+## 🆕 What's New in v0.3
 
+- **🤖 CrewAI transcript analysis**: a multi-agent QA system reviews call transcripts automatically
+  - **QA Reviewer** finds issues and rates each call 1–5
+  - **Issue Classifier** buckets problems (knowledge gap, STT error, UX issue, …)
+  - **Improvement Suggester** produces prioritised, actionable fixes
+- **⚛️ React admin frontend**: TypeScript + Vite with an Orval-generated API client
+- **📝 Transcript Reviews API**: quality scores, issues and suggestions per call
+- **📈 Accurate latency metrics**: percentiles computed with linear interpolation
+- **🛡️ Concurrency safety**: unique constraints prevent duplicate reviews under load
+- **🗄️ ChromaDB reliability**: correct commit ordering prevents orphaned embeddings
 
-\- **\*\*🎙️ Real-time Voice Pipeline\*\***: Deepgram STT → Groq LLM → Piper TTS (< 500ms P50)
+<details>
+<summary><b>📋 Previous releases</b></summary>
 
-\- **\*\*🇮🇳 Native Hindi Support\*\***: Seamless code-switching between Hindi, English, and Hinglish
+### v0.2: Multi-Business & Knowledge Base
+- Multi-business support with phone-number routing
+- RAG-powered knowledge base (ChromaDB) for dynamic menu / FAQ answers
+- Admin UI editors: menu editor, FAQ editor, knowledge test page
+- Security hardening: safe phone-routing fallback, capacity limits, per-step timeouts
+- Transactional consistency between the database and the vector store
+- Prometheus metrics for RAG latency and hit rate
 
-\- **\*\*📞 Telephony Ready\*\***: Plivo integration for inbound calls (WebSocket audio streaming)
+</details>
 
-\- **\*\*🍽️ Restaurant Demo\*\***: Table reservations, menu queries, hours - fully functional
+---
 
-\- **\*\*🧠 Knowledge Base (RAG)\*\***: ChromaDB-powered retrieval for menu items, FAQs, policies
+## 🏗️ Architecture
 
-\- **\*\*🏢 Multi-Business\*\***: Support multiple businesses with phone-based routing
+```mermaid
+flowchart LR
+    Caller([📞 Caller]) <--> Plivo[Plivo Telephony]
+    Browser([🌐 Browser Test UI]) <--> WS
+    Plivo <--> WS[FastAPI + WebSocket]
 
-\- **\*\*🤖 AI-Powered QA\*\***: CrewAI agents analyze transcripts for quality issues and improvements
+    WS --> STT[Deepgram STT]
+    STT --> LLM[Groq LLM<br/>llama-3.3]
+    LLM --> TTS[Piper TTS<br/>Hindi]
+    TTS --> WS
 
-\- **\*\*🎯 Low Latency\*\***: P50 < 500ms processing, per-step timeouts, optimized for real conversations
+    LLM <--> RAG[(ChromaDB<br/>Knowledge Base)]
+    LLM <--> DB[(SQLite<br/>Business Data)]
 
-\- **\*\*🔒 Privacy First\*\***: Phone encryption (AES-256-GCM), PII masking, safe routing
+    DB --> QA[CrewAI QA Agents]
+    QA --> DB
 
-\- **\*\*💰 Cost Effective\*\***: \~$16-27/month operational cost
+    WS --> Prom[Prometheus Metrics]
+```
 
+**Per-call flow:** caller audio streams in over WebSocket → speech is transcribed → the LLM answers using retrieved business knowledge → the reply is synthesised to speech and streamed back, with per-step timeouts at every stage. After the call, QA agents review the transcript.
 
+---
 
-\## 🆕 What's New in v0.3
+## 🚀 Quick Start
 
+### Prerequisites
 
+- Python **3.12+**
+- [uv](https://github.com/astral-sh/uv) (recommended) or pip
+- API keys for [Deepgram](https://deepgram.com) and [Groq](https://groq.com)
 
-\- **\*\*CrewAI Transcript Analysis\*\***: Multi-agent QA system reviews call transcripts automatically
+### 1. Clone & install
 
-  - QA Reviewer agent identifies issues and rates call quality (1-5)
-
-  - Issue Classifier categorizes problems (knowledge gap, STT error, UX issue, etc.)
-
-  - Improvement Suggester generates actionable fixes with priorities
-
-\- **\*\*React Admin Frontend\*\***: Modern TypeScript frontend with Orval-generated API client
-
-\- **\*\*Transcript Reviews API\*\***: View quality scores, issues, and suggestions per call
-
-\- **\*\*Latency Metrics\*\***: Accurate percentile calculations with linear interpolation
-
-\- **\*\*Concurrency Safety\*\***: Unique constraints prevent duplicate reviews under load
-
-\- **\*\*ChromaDB Reliability\*\***: Proper commit ordering prevents orphaned embeddings
-
-
-
-\## 📋 Previous Releases
-
-
-
-\<details>
-
-\<summary>v0.2 - Multi-Business & Knowledge Base\</summary>
-
-
-
-\- **\*\*Multi-Business Support\*\***: Route calls to different businesses based on phone number
-
-\- **\*\*Knowledge Base System\*\***: RAG-powered retrieval with ChromaDB for dynamic menu/FAQ responses
-
-\- **\*\*Admin UI Editors\*\***: Menu editor, FAQ editor, and knowledge test pages
-
-\- **\*\*Security Hardening\*\***: Safe phone routing fallback, capacity limits, per-step timeouts
-
-\- **\*\*Data Integrity\*\***: Transactional consistency between DB and vector store
-
-\- **\*\*Prometheus Metrics\*\***: RAG latency and hit rate observability
-
-\</details>
-
-
-
-\## 🏗️ Architecture
-
-
-
-\`\`\`
-
-┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-
-│   Browser   │────▶│   FastAPI    │────▶│  Deepgram   │
-
-│  (WebRTC)   │◀────│  WebSocket   │◀────│    STT      │
-
-└─────────────┘     └──────┬───────┘     └─────────────┘
-
-                          │
-
-                          ▼
-
-┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-
-│  ChromaDB   │────▶│   Groq LLM   │◀────│   SQLite    │
-
-│    (RAG)    │     │ (llama-3.3)  │     │  (Business) │
-
-└─────────────┘     └──────┬───────┘     └─────────────┘
-
-                          │
-
-                          ▼
-
-┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-
-│   Plivo     │◀───▶│  Piper TTS   │     │   CrewAI    │
-
-│ (Telephony) │     │   (Hindi)    │     │  (QA Agents)│
-
-└─────────────┘     └──────────────┘     └─────────────┘
-
-\`\`\`
-
-
-
-\## 🚀 Quick Start
-
-
-
-\### Prerequisites
-
-
-
-\- Python 3.12+
-
-\- [uv]\(https\://github.com/astral-sh/uv) (recommended) or pip
-
-\- API keys: [Deepgram]\(https\://deepgram.com), [Groq]\(https\://groq.com)
-
-
-
-\### 1. Clone & Install
-
-
-
-\`\`\`bash
-
-git clone https\://github.com/AmalBajpayee09/BharatVoice.git
-
+```bash
+git clone https://github.com/AmalBajpayee09/BharatVoice.git
 cd BharatVoice
 
-
-
-*# Install dependencies*
-
 uv sync --all-extras
+```
 
-\`\`\`
+### 2. Configure environment
 
-
-
-\### 2. Configure Environment
-
-
-
-\`\`\`bash
-
-*# Copy example env file*
-
+```bash
 cp .env.example .env
-
-
-
-*# Edit with your API keys*
-
 nano .env
+```
 
-\`\`\`
+**Required**
 
+| Variable | Purpose | Get a key |
+|---|---|---|
+| `GROQ_API_KEY` | LLM (conversation) | [console.groq.com](https://console.groq.com) |
+| `DEEPGRAM_API_KEY` | Speech-to-text | [deepgram.com](https://deepgram.com) |
 
+**Optional (telephony)**
 
-**\*\*Required API Keys:\*\***
+| Variable | Purpose | Get a key |
+|---|---|---|
+| `PLIVO_AUTH_ID` | Phone calls | [plivo.com](https://plivo.com) |
+| `PLIVO_AUTH_TOKEN` | Phone calls | [plivo.com](https://plivo.com) |
 
-\| Service | Purpose | Get Key |
+### 3. Generate security keys
 
-\|---------|---------|---------|
-
-\| \`GROQ_API_KEY\` | LLM (conversation) | [console.groq.com]\(https\://console.groq.com) |
-
-\| \`DEEPGRAM_API_KEY\` | Speech-to-text | [deepgram.com]\(https\://deepgram.com) |
-
-
-
-**\*\*Optional (for telephony):\*\***
-
-\| Service | Purpose | Get Key |
-
-\|---------|---------|---------|
-
-\| \`PLIVO_AUTH_ID\` | Phone calls | [plivo.com]\(https\://plivo.com) |
-
-\| \`PLIVO_AUTH_TOKEN\` | Phone calls | [plivo.com]\(https\://plivo.com) |
-
-
-
-\### 3. Generate Security Keys
-
-
-
-\`\`\`bash
-
-*# Generate encryption keys*
-
+```bash
 python scripts/generate_keys.py
+```
 
-\`\`\`
+### 4. Run the server
 
-
-
-\### 4. Run the Server
-
-
-
-\`\`\`bash
-
-*# Start API server*
-
+```bash
 uv run uvicorn src.main:app --host 0.0.0.0 --port 8000
 
-
-
-*# Or with hot reload (development)*
-
+# or with hot reload for development
 uv run uvicorn src.main:app --reload
+```
 
-\`\`\`
+### 5. Try it
 
+Open **http://localhost:8000/voice** → click **Start Call** → speak in Hindi, English or Hinglish → click **End Call**.
 
+---
 
-\### 5. Test Voice Bot
+## 🎯 Demo: Himalayan Kitchen
 
+The default configuration is a demo restaurant bot. Try saying:
 
+| You say | Meaning |
+|---|---|
+| "Table book karna hai" | I want to book a table |
+| "4 log, kal shaam 7 baje" | 4 people, tomorrow at 7 PM |
+| "Menu mein kya hai?" | What's on the menu? |
+| "Timing kya hai?" | What are your hours? |
 
-Open in browser: **\*\*http\://localhost:8000/voice\*\***
+---
 
+## 🔧 Configuration
 
+### Key environment settings
 
-1\. Click **\*\*"Start Call"\*\***
+```bash
+# LLM
+GROQ_API_KEY=gsk_xxxx              # Required
 
-2\. Speak naturally in Hindi/English
+# Speech-to-text
+DEEPGRAM_API_KEY=xxxx              # Required
 
-3\. Bot responds automatically
-
-4\. Click **\*\*"End Call"\*\*** when done
-
-
-
-\## 📁 Project Structure
-
-
-
-\`\`\`
-
-bharatvoice/
-
-├── src/
-
-│   ├── api/                 # FastAPI routes & WebSocket handlers
-
-│   │   ├── routes/          # REST endpoints (Plivo webhooks, CRUD, reviews)
-
-│   │   ├── websocket/       # Audio streaming with capacity limits
-
-│   │   └── static/          # Voice test UI
-
-│   ├── core/                # Business logic
-
-│   │   ├── pipeline.py      # Voice pipeline with per-step timeouts
-
-│   │   ├── session.py       # Call session management
-
-│   │   └── context.py       # Business context builder
-
-│   ├── services/            # External service integrations
-
-│   │   ├── stt/             # Speech-to-text (Deepgram)
-
-│   │   ├── llm/             # Language model (Groq) with RAG injection
-
-│   │   ├── tts/             # Text-to-speech (Piper)
-
-│   │   ├── telephony/       # Phone (Plivo)
-
-│   │   ├── knowledge/       # RAG retrieval (ChromaDB + embeddings)
-
-│   │   └── analysis/        # CrewAI transcript QA agents
-
-│   ├── db/                  # Database models & repositories
-
-│   └── observability/       # Prometheus metrics
-
-├── web/                     # React admin frontend (TypeScript + Vite)
-
-│   └── src/api/             # Orval-generated API client
-
-├── admin/                   # Streamlit admin dashboard
-
-│   └── pages/               # Menu editor, FAQ editor, knowledge test
-
-├── config/                  # Business configuration (YAML)
-
-├── migrations/              # Alembic database migrations
-
-├── schemas/                 # JSON Schema (source of truth)
-
-├── tests/                   # Test suite
-
-└── scripts/                 # Utility scripts
-
-\`\`\`
-
-
-
-\## 🎯 Demo: Himalayan Kitchen
-
-
-
-The default configuration is a demo restaurant bot for "Himalayan Kitchen":
-
-
-
-**\*\*Try saying:\*\***
-
-\- "Table book karna hai" (I want to book a table)
-
-\- "4 log, kal shaam 7 baje" (4 people, tomorrow 7 PM)
-
-\- "Menu mein kya hai?" (What's on the menu?)
-
-\- "Timing kya hai?" (What are the hours?)
-
-
-
-\## 🔧 Configuration
-
-
-
-\### Environment Variables
-
-
-
-See [.env.example]\(.env.example) for all options.
-
-
-
-**\*\*Key Settings:\*\***
-
-\`\`\`bash
-
-*# LLM*
-
-GROQ_API_KEY=gsk_xxxx              *# Required*
-
-
-
-*# Speech-to-Text*
-
-DEEPGRAM_API_KEY=xxxx              *# Required*
-
-
-
-*# TTS (optional - defaults to gTTS)*
-
+# TTS (optional, defaults to gTTS)
 PIPER_VOICE=hi_IN-priyamvada-medium
-
 EDGE_TTS_ENABLED=false
 
-
-
-*# Conversation*
-
+# Conversation
 GREETING_TEXT=Namaste! ...
+BARGE_IN_ENABLED=true              # Callers can interrupt the bot
+```
 
-BARGE_IN_ENABLED=true              *# Interrupt bot while speaking*
+See [`.env.example`](.env.example) for every option.
 
-\`\`\`
+### Business configuration
 
+Edit `config/business/himalayan_kitchen.yaml`:
 
-
-\### Business Configuration
-
-
-
-Edit \`config/business/himalayan_kitchen.yaml\`:
-
-
-
-\`\`\`yaml
-
+```yaml
 name: "Himalayan Kitchen"
-
 hours:
-
-  monday: closed
-
-  tuesday: "11:00-22:30"
-
-  *# ...*
-
+  monday: closed
+  tuesday: "11:00-22:30"
+  # ...
 reservation:
-
-  max_party_size: 10
-
-  advance_days: 30
-
-\`\`\`
-
-
-
-\## 🧪 Testing
-
-
-
-\`\`\`bash
-
-*# Run all tests*
-
-uv run pytest
-
-
-
-*# Run with coverage*
-
-uv run pytest --cov=src
-
-
-
-*# Test specific module*
-
-uv run pytest tests/test_core/
-
-\`\`\`
-
-
-
-\### Manual Testing Scripts
-
-
-
-\`\`\`bash
-
-*# Test TTS voice quality*
-
-uv run python scripts/test_tts.py
-
-
-
-*# Test LLM responses*
-
-uv run python scripts/test_llm.py
-
-
-
-*# Text-based conversation test*
-
-uv run python scripts/chat_cli.py
-
-\`\`\`
-
-
-
-\## 🛠️ Development
-
-
-
-\### Code Quality
-
-
-
-\`\`\`bash
-
-*# Lint*
-
-uv run ruff check .
-
-
-
-*# Format*
-
-uv run ruff format .
-
-
-
-*# Type check*
-
-uv run mypy src/
-
-\`\`\`
-
-
-
-\### Database Migrations
-
-
-
-\`\`\`bash
-
-*# Create migration*
+  max_party_size: 10
+  advance_days: 30
+```
+
+---
+
+## 📊 Admin Tools
+
+```bash
+uv run streamlit run admin/app.py     # → http://localhost:8501
+```
+
+- 📞 Call logs & transcripts (PII masked)
+- 📅 Reservation management
+- 📈 Analytics dashboard
+- 🍽️ **Menu editor**: items with Hindi translations
+- ❓ **FAQ editor**: FAQs, policies, announcements
+- 🧪 **Knowledge test**: verify RAG retrieval before going live
+- ⚙️ Configuration editor
+- ⚛️ **React admin** (`web/`): transcript reviews, quality scores and suggestions
+
+---
+
+## 📈 Performance
+
+| Metric | Target | Actual |
+|---|---|---|
+| STT latency (P50) | < 300 ms | ~250 ms |
+| LLM latency (P50) | < 500 ms | ~350 ms |
+| TTS latency (P50) | < 200 ms | ~150 ms |
+| End-to-end (P95) | < 1.2 s | ~1.0 s |
+
+---
+
+## 📁 Project Structure
+
+```
+bharatvoice/
+├── src/
+│   ├── api/            # FastAPI routes & WebSocket handlers
+│   │   ├── routes/     # REST endpoints (Plivo webhooks, CRUD, reviews)
+│   │   ├── websocket/  # Audio streaming with capacity limits
+│   │   └── static/     # Voice test UI
+│   ├── core/           # Pipeline (per-step timeouts), sessions, context builder
+│   ├── services/       # stt · llm · tts · telephony · knowledge · analysis
+│   ├── db/             # Models & repositories
+│   └── observability/  # Prometheus metrics
+├── web/                # React admin (TypeScript + Vite, Orval client)
+├── admin/              # Streamlit dashboard (menu / FAQ / knowledge test)
+├── config/             # Business configuration (YAML)
+├── migrations/         # Alembic migrations
+├── schemas/            # JSON Schema (source of truth)
+├── tests/              # Test suite
+└── scripts/            # Utility scripts
+```
+
+---
+
+## 🧪 Testing & Development
+
+```bash
+uv run pytest                      # all tests
+uv run pytest --cov=src            # with coverage
+uv run pytest tests/test_core/     # one module
+
+uv run ruff check .                # lint
+uv run ruff format .               # format
+uv run mypy src/                   # type check
 
 uv run alembic revision --autogenerate -m "description"
-
-
-
-*# Apply migrations*
-
 uv run alembic upgrade head
+```
 
-\`\`\`
+**Manual scripts:** `scripts/test_tts.py` (voice quality) · `scripts/test_llm.py` (LLM replies) · `scripts/chat_cli.py` (text-only conversation)
 
+---
 
+## 🚢 Deployment
 
-\## 📊 Admin Dashboard
+**Docker**
 
-
-
-\`\`\`bash
-
-*# Start admin UI*
-
-uv run streamlit run admin/app.py
-
-\`\`\`
-
-
-
-Access at: **\*\*http\://localhost:8501\*\***
-
-
-
-Features:
-
-\- Call logs & transcripts (with PII masking)
-
-\- Reservation management
-
-\- Analytics dashboard
-
-\- **\*\*Menu Editor\*\*** - Add/edit menu items with Hindi translations
-
-\- **\*\*FAQ Editor\*\*** - Manage FAQs, policies, and announcements
-
-\- **\*\*Knowledge Test\*\*** - Test RAG retrieval before going live
-
-\- Configuration editor
-
-
-
-\## 🚢 Deployment
-
-
-
-\### Docker
-
-
-
-\`\`\`bash
-
+```bash
 docker-compose up -d
+```
 
-\`\`\`
+**Manual**
 
+1. Set `ENVIRONMENT=production` in `.env`
+2. Run under a process manager (systemd, supervisor)
+3. Put it behind a reverse proxy (Caddy, nginx)
+4. Configure SSL certificates
 
+---
 
-\### Manual
+## 📚 Documentation
 
+- [**PRD & Technical Documentation**](docs/PRD_and_Technical_Documentation.md): product requirements, architecture, data flow, security and roadmap
 
+---
 
-1\. Set \`ENVIRONMENT=production\` in \`.env\`
+## 🤝 Contributing
 
-2\. Use a process manager (systemd, supervisor)
+Contributions are welcome!
 
-3\. Put behind reverse proxy (Caddy, nginx)
+1. Fork the repository
+2. Create a branch: `git checkout -b feature/amazing`
+3. Commit: `git commit -m "Add amazing feature"`
+4. Push: `git push origin feature/amazing`
+5. Open a Pull Request
 
-4\. Configure SSL certificates
+---
 
+## 📄 License
 
+Released under the [MIT License](LICENSE).
 
-\## 📈 Performance Targets
+## 🙏 Acknowledgments
 
+[Deepgram](https://deepgram.com) (STT) · [Groq](https://groq.com) (LLM inference) · [Piper](https://github.com/rhasspy/piper) (offline Hindi TTS) · [ChromaDB](https://trychroma.com) (RAG) · [CrewAI](https://crewai.com) (QA agents) · [FastAPI](https://fastapi.tiangolo.com) · [Streamlit](https://streamlit.io)
 
+---
 
-\| Metric | Target | Actual |
+<div align="center">
 
-\|--------|--------|--------|
+**Built with ❤️ by [Amal Bajpayee](https://github.com/AmalBajpayee09) for local Indian businesses**
 
-\| STT Latency (P50) | < 300ms | \~250ms |
+Questions or suggestions? [Open an issue](https://github.com/AmalBajpayee09/BharatVoice/issues) · ⭐ Star the repo if it helps you!
 
-\| LLM Latency (P50) | < 500ms | \~350ms |
-
-\| TTS Latency (P50) | < 200ms | \~150ms |
-
-\| End-to-end (P95) | < 1.2s | \~1.0s |
-
-
-
-\## 🤝 Contributing
-
-
-
-Contributions welcome! Please:
-
-
-
-1\. Fork the repository
-
-2\. Create a feature branch (\`git checkout -b feature/amazing\`)
-
-3\. Commit changes (\`git commit -m 'Add amazing feature'\`)
-
-4\. Push to branch (\`git push origin feature/amazing\`)
-
-5\. Open a Pull Request
-
-
-
-\## 📄 License
-
-
-
-MIT License - see [LICENSE]\(LICENSE) for details.
-
-
-
-\## 🙏 Acknowledgments
-
-
-
-\- [Deepgram]\(https\://deepgram.com) - Speech-to-text
-
-\- [Groq]\(https\://groq.com) - Fast LLM inference
-
-\- [Piper]\(https\://github.com/rhasspy/piper) - Offline Hindi TTS
-
-\- [ChromaDB]\(https\://trychroma.com) - Vector database for RAG
-
-\- [CrewAI]\(https\://crewai.com) - Multi-agent orchestration for QA
-
-\- [FastAPI]\(https\://fastapi.tiangolo.com) - Web framework
-
-\- [Streamlit]\(https\://streamlit.io) - Admin dashboard
-
-
-
-\---
-
-
-
-**\*\*Built with ❤️ by Amal Bajpayee for local Indian businesses\*\***
-
-
-
-*\*Built by [Amal Bajpayee](https://github.com/AmalBajpayee09). Questions or suggestions? Open an issue!\**
+</div>
